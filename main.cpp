@@ -116,8 +116,7 @@ void save_snapshot(int i, const char *endpoint)
 	soap->fignore = skip_unknown;
 	soap->connect_timeout = soap->recv_timeout = soap->send_timeout = 10; // 10 sec
 
-	// enable https connections with server certificate verification using cacerts.pem
-	if (soap_ssl_client_context(soap, SOAP_SSL_DEFAULT | SOAP_SSL_SKIP_HOST_CHECK, NULL, NULL, NULL/*"cacerts.pem"*/, "/etc/ssl/certs", NULL))
+	if (soap_ssl_client_context(soap, SOAP_SSL_DEFAULT | SOAP_SSL_SKIP_HOST_CHECK, NULL, NULL, NULL, "/etc/ssl/certs", NULL))
 		report_error(soap);
 
 	std::cout << "GET" << std::endl;
@@ -162,37 +161,21 @@ void save_snapshot(int i, const char *endpoint)
 	soap_free(soap);
 }
 
-void print_usage(const char *argv0)
+void show_resolutions(struct soap *soap)
 {
-	printf("%s address username password action [action parameters]\n"
-	       "actions: resolutions set_resolution events\n", argv0);
-	exit(0);
 }
 
-int main(int argc, char **argv)
+void set_resolution(struct soap *soap, char *res)
+{
+	int w, h;
+
+	w = atoi(strtok(res, "x"));
+	h = atoi(strtok(NULL, "x"));
+}
+
+void show_info(struct soap *soap)
 {
 	char soap_endpoint[1024];
-	if (argc < 4)
-		print_usage(argv[0]);
-
-	g_hostname = argv[1];
-	g_username = argv[2];
-	g_password = argv[3];
-
-
-	// make OpenSSL MT-safe with mutex
-	CRYPTO_thread_setup();
-
-	// create a context with strict XML validation and exclusive XML canonicalization for WS-Security enabled
-	struct soap *soap = soap_new1(SOAP_XML_STRICT | SOAP_XML_CANONICAL);
-	soap->fignore = skip_unknown;
-	soap->connect_timeout = soap->recv_timeout = soap->send_timeout = 10; // 10 sec
-	soap_register_plugin(soap, soap_wsse);
-
-	// enable https connections with server certificate verification using cacerts.pem
-	if (soap_ssl_client_context(soap, SOAP_SSL_DEFAULT | SOAP_SSL_SKIP_HOST_CHECK, NULL, NULL, NULL/*"cacerts.pem"*/, "/etc/ssl/certs", NULL))
-		report_error(soap);
-
 	// create the proxies to access the ONVIF service API at HOSTNAME
 	DeviceBindingProxy proxyDevice(soap);
 	MediaBindingProxy proxyMedia(soap);
@@ -246,9 +229,15 @@ int main(int argc, char **argv)
 		report_error(soap);
 	check_response(soap);
 
+	//print resolutions
 	// for each profile get snapshot
 	for (unsigned long i = 0; i < GetProfilesResponse.Profiles.size(); ++i)
 	{
+		std::cout << "Resolution: "
+		<< GetProfilesResponse.Profiles[i]->VideoEncoderConfiguration->Resolution->Width
+		<< "x"
+		<< GetProfilesResponse.Profiles[i]->VideoEncoderConfiguration->Resolution->Height
+		<< std::endl;
 		// get snapshot URI for profile
 		_trt__GetSnapshotUri GetSnapshotUri;
 		_trt__GetSnapshotUriResponse GetSnapshotUriResponse;
@@ -260,6 +249,62 @@ int main(int argc, char **argv)
 		std::cout << "Profile name: " << GetProfilesResponse.Profiles[i]->Name << std::endl;
 		if (GetSnapshotUriResponse.MediaUri)
 			save_snapshot(i, GetSnapshotUriResponse.MediaUri->Uri.c_str());
+	}
+
+}
+
+void print_usage(const char *argv0)
+{
+	printf("%s address username password action [action parameters]\n"
+	       "actions: info resolutions set_resolution events\n", argv0);
+	exit(0);
+}
+
+int main(int argc, char **argv)
+{
+	if (argc < 4)
+		print_usage(argv[0]);
+
+	g_hostname = argv[1];
+	g_username = argv[2];
+	g_password = argv[3];
+
+
+	// make OpenSSL MT-safe with mutex
+	CRYPTO_thread_setup();
+
+	// create a context with strict XML validation and exclusive XML canonicalization for WS-Security enabled
+	struct soap *soap = soap_new1(SOAP_XML_STRICT | SOAP_XML_CANONICAL);
+	soap->fignore = skip_unknown;
+	soap->connect_timeout = soap->recv_timeout = soap->send_timeout = 10; // 10 sec
+	soap_register_plugin(soap, soap_wsse);
+
+	if (soap_ssl_client_context(soap, SOAP_SSL_DEFAULT | SOAP_SSL_SKIP_HOST_CHECK, NULL, NULL, NULL, "/etc/ssl/certs", NULL))
+		report_error(soap);
+
+
+	if (argc == 4)
+		show_info(soap);//default action
+	else
+	{
+		if (strcmp("resolutions", argv[4]) == 0)
+			show_resolutions(soap);
+		else if (strcmp("set_resolution", argv[4]) == 0)
+		{
+			if (argc < 6)
+			{
+				std::cerr << "Missing resolution argument!" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			set_resolution(soap, argv[5]);
+		}
+		else if (strcmp("events", argv[4]) == 0)
+		{
+		}
+		else
+		{
+			std::cerr << "Unknown action: " << argv[4] << std::endl;
+		}
 	}
 
 	// free all deserialized and managed data, we can still reuse the context and proxies after this
