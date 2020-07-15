@@ -7,19 +7,11 @@
 #include "plugin/wsseapi.h"
 #include "wsdd.nsmap"
 
-//#define USERNAME "username"
-//#define PASSWORD "password"
-//#define HOSTNAME "https://12.34.56.78:9000/onvif/device_service"
 
-#define USERNAME "admin"
-#define PASSWORD "admin"
-#define HOSTNAME "http://192.168.86.29/onvif/device_service"
+static char *g_username;
+static char *g_password;
+static char *g_hostname;
 
-char *g_username;
-char *g_password;
-char *g_hostname;
-
-// using http instead of https is not safe unless you secure message integrity with WS-Security by uncommenting:
 // #define PROTECT
 
 #ifdef PROTECT
