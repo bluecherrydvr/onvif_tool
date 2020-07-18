@@ -49,6 +49,14 @@ void report_error(struct soap *soap)
 	exit(EXIT_FAILURE);
 }
 
+static void set_device_endpoint(DeviceBindingProxy *dev, const char *hostname)
+{
+	static char soap_endpoint[1024];
+	sprintf(soap_endpoint, "%s/onvif/device_service", hostname);
+
+	dev->soap_endpoint = soap_endpoint;
+}
+
 // to set the timestamp and authentication credentials in a request message
 void set_credentials(struct soap *soap)
 {
@@ -173,6 +181,41 @@ void save_snapshot(int i, const char *endpoint)
 
 void show_resolutions(struct soap *soap)
 {
+	DeviceBindingProxy proxyDevice(soap);
+	MediaBindingProxy proxyMedia(soap);
+
+	set_device_endpoint(&proxyDevice, g_hostname);
+
+	_tds__GetCapabilities GetCapabilities;
+	_tds__GetCapabilitiesResponse GetCapabilitiesResponse;
+	set_credentials(soap);
+	if (proxyDevice.GetCapabilities(&GetCapabilities, GetCapabilitiesResponse))
+		report_error(soap);
+	check_response(soap);
+	if (!GetCapabilitiesResponse.Capabilities || !GetCapabilitiesResponse.Capabilities->Media)
+	{
+		std::cerr << "Missing device capabilities info" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// set the Media proxy endpoint to XAddr
+	proxyMedia.soap_endpoint = GetCapabilitiesResponse.Capabilities->Media->XAddr.c_str();
+
+	std::cout << "XAddr:        " << GetCapabilitiesResponse.Capabilities->Media->XAddr << std::endl;
+
+	_trt__GetVideoEncoderConfigurations GetVideoEncoderConfigurations;
+	_trt__GetVideoEncoderConfigurationsResponse GetVideoEncoderConfigurationsResponse;
+
+	set_credentials(soap);
+	if (proxyMedia.GetVideoEncoderConfigurations(&GetVideoEncoderConfigurations, GetVideoEncoderConfigurationsResponse))
+		report_error(soap);
+	check_response(soap);
+
+	for (unsigned long i = 0; i < GetVideoEncoderConfigurationsResponse.Configurations.size(); i++)
+		std::cout << GetVideoEncoderConfigurationsResponse.Configurations[0]->Resolution->Width
+				<< "x"
+				<< GetVideoEncoderConfigurationsResponse.Configurations[0]->Resolution->Height
+				<< std::endl;
 }
 
 void set_resolution(struct soap *soap, char *res)
@@ -181,18 +224,19 @@ void set_resolution(struct soap *soap, char *res)
 
 	w = atoi(strtok(res, "x"));
 	h = atoi(strtok(NULL, "x"));
+
 }
 
 void show_info(struct soap *soap)
 {
-	char soap_endpoint[1024];
 	// create the proxies to access the ONVIF service API at HOSTNAME
 	DeviceBindingProxy proxyDevice(soap);
 	MediaBindingProxy proxyMedia(soap);
 
 	// get device info and print
-	sprintf(soap_endpoint, "%s/onvif/device_service", g_hostname);
-	proxyDevice.soap_endpoint = HOSTNAME;
+	//proxyDevice.soap_endpoint = soap_endpoint;
+	set_device_endpoint(&proxyDevice, g_hostname);
+
 	_tds__GetDeviceInformation GetDeviceInformation;
 	_tds__GetDeviceInformationResponse GetDeviceInformationResponse;
 	set_credentials(soap);
