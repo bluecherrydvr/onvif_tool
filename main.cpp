@@ -201,21 +201,28 @@ void show_resolutions(struct soap *soap)
 	// set the Media proxy endpoint to XAddr
 	proxyMedia.soap_endpoint = GetCapabilitiesResponse.Capabilities->Media->XAddr.c_str();
 
-	std::cout << "XAddr:        " << GetCapabilitiesResponse.Capabilities->Media->XAddr << std::endl;
-
-	_trt__GetVideoEncoderConfigurations GetVideoEncoderConfigurations;
-	_trt__GetVideoEncoderConfigurationsResponse GetVideoEncoderConfigurationsResponse;
+	_trt__GetVideoEncoderConfigurationOptions GetVideoEncoderConfigurationOptions;
+	_trt__GetVideoEncoderConfigurationOptionsResponse GetVideoEncoderConfigurationOptionsResponse;
 
 	set_credentials(soap);
-	if (proxyMedia.GetVideoEncoderConfigurations(&GetVideoEncoderConfigurations, GetVideoEncoderConfigurationsResponse))
+	if (proxyMedia.GetVideoEncoderConfigurationOptions(&GetVideoEncoderConfigurationOptions, GetVideoEncoderConfigurationOptionsResponse))
 		report_error(soap);
 	check_response(soap);
 
-	for (unsigned long i = 0; i < GetVideoEncoderConfigurationsResponse.Configurations.size(); i++)
-		std::cout << GetVideoEncoderConfigurationsResponse.Configurations[0]->Resolution->Width
-				<< "x"
-				<< GetVideoEncoderConfigurationsResponse.Configurations[0]->Resolution->Height
-				<< std::endl;
+	if (!GetVideoEncoderConfigurationOptionsResponse.Options)
+	{
+		std::cerr << "Missing device capabilities info" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	if (GetVideoEncoderConfigurationOptionsResponse.Options->H264)
+	{
+		for (unsigned long i = 0; i < GetVideoEncoderConfigurationOptionsResponse.Options->H264->ResolutionsAvailable.size(); i++)
+			std::cout << GetVideoEncoderConfigurationOptionsResponse.Options->H264->ResolutionsAvailable[i]->Width
+					<< "x"
+					<< GetVideoEncoderConfigurationOptionsResponse.Options->H264->ResolutionsAvailable[i]->Height
+					<< std::endl;
+	}
 }
 
 void set_resolution(struct soap *soap, char *res)
