@@ -223,6 +223,14 @@ void show_resolutions(struct soap *soap)
 					<< GetVideoEncoderConfigurationOptionsResponse.Options->H264->ResolutionsAvailable[i]->Height
 					<< std::endl;
 	}
+	else if (GetVideoEncoderConfigurationOptionsResponse.Options->JPEG)
+	{
+		for (unsigned long i = 0; i < GetVideoEncoderConfigurationOptionsResponse.Options->JPEG->ResolutionsAvailable.size(); i++)
+			std::cout << GetVideoEncoderConfigurationOptionsResponse.Options->JPEG->ResolutionsAvailable[i]->Width
+					<< "x"
+					<< GetVideoEncoderConfigurationOptionsResponse.Options->JPEG->ResolutionsAvailable[i]->Height
+					<< std::endl;
+	}
 }
 
 void set_resolution(struct soap *soap, char *res)
