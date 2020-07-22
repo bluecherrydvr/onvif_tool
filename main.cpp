@@ -236,10 +236,52 @@ void show_resolutions(struct soap *soap)
 void set_resolution(struct soap *soap, char *res)
 {
 	int w, h;
+	DeviceBindingProxy proxyDevice(soap);
+	MediaBindingProxy proxyMedia(soap);
+
+	set_device_endpoint(&proxyDevice, g_hostname);
+
+	_tds__GetCapabilities GetCapabilities;
+	_tds__GetCapabilitiesResponse GetCapabilitiesResponse;
+	set_credentials(soap);
+	if (proxyDevice.GetCapabilities(&GetCapabilities, GetCapabilitiesResponse))
+		report_error(soap);
+	check_response(soap);
+	if (!GetCapabilitiesResponse.Capabilities || !GetCapabilitiesResponse.Capabilities->Media)
+	{
+		std::cerr << "Missing device capabilities info" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// set the Media proxy endpoint to XAddr
+	proxyMedia.soap_endpoint = GetCapabilitiesResponse.Capabilities->Media->XAddr.c_str();
 
 	w = atoi(strtok(res, "x"));
 	h = atoi(strtok(NULL, "x"));
 
+	printf("%ux%u\n", w,h);
+
+	_trt__GetVideoEncoderConfigurations GetVideoEncoderConfigurations;
+	_trt__GetVideoEncoderConfigurationsResponse GetVideoEncoderConfigurationsResponse;
+
+	set_credentials(soap);
+	if (proxyMedia.GetVideoEncoderConfigurations(&GetVideoEncoderConfigurations, GetVideoEncoderConfigurationsResponse))
+		report_error(soap);
+	check_response(soap);
+
+	_trt__SetVideoEncoderConfiguration SetVideoEncoderConfiguration;
+	_trt__SetVideoEncoderConfigurationResponse SetVideoEncoderConfigurationResponse;
+
+	SetVideoEncoderConfiguration.Configuration = GetVideoEncoderConfigurationsResponse.Configurations[0];
+	SetVideoEncoderConfiguration.Configuration->Resolution->Width = w;
+	SetVideoEncoderConfiguration.Configuration->Resolution->Height = h;
+
+	set_credentials(soap);
+	if (proxyMedia.SetVideoEncoderConfiguration(&SetVideoEncoderConfiguration, SetVideoEncoderConfigurationResponse))
+		report_error(soap);
+	check_response(soap);
+
+	puts("OK");
 }
 
 void show_info(struct soap *soap)
