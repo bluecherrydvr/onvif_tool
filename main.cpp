@@ -284,6 +284,62 @@ void set_resolution(struct soap *soap, char *res)
 	puts("OK");
 }
 
+void get_stream_urls(struct soap *soap)
+{
+
+	DeviceBindingProxy proxyDevice(soap);
+	MediaBindingProxy proxyMedia(soap);
+
+	// get device info and print
+	//proxyDevice.soap_endpoint = soap_endpoint;
+	set_device_endpoint(&proxyDevice, g_hostname);
+
+	_tds__GetCapabilities GetCapabilities;
+	_tds__GetCapabilitiesResponse GetCapabilitiesResponse;
+	set_credentials(soap);
+	if (proxyDevice.GetCapabilities(&GetCapabilities, GetCapabilitiesResponse))
+		report_error(soap);
+	check_response(soap);
+	if (!GetCapabilitiesResponse.Capabilities || !GetCapabilitiesResponse.Capabilities->Media)
+	{
+		std::cerr << "Missing device capabilities info" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// set the Media proxy endpoint to XAddr
+	proxyMedia.soap_endpoint = GetCapabilitiesResponse.Capabilities->Media->XAddr.c_str();
+
+	std::cout << GetCapabilitiesResponse.Capabilities->Media->XAddr << std::endl;
+
+	// get device profiles
+	_trt__GetProfiles GetProfiles;
+	_trt__GetProfilesResponse GetProfilesResponse;
+	set_credentials(soap);
+	if (proxyMedia.GetProfiles(&GetProfiles, GetProfilesResponse))
+		report_error(soap);
+	check_response(soap);
+
+	for (unsigned long i = 0; i < GetProfilesResponse.Profiles.size(); ++i)
+	{
+		_trt__GetStreamUri GetStreamUri;
+		_trt__GetStreamUriResponse GetStreamUriResponse;
+
+		GetStreamUri.ProfileToken = GetProfilesResponse.Profiles[i]->token;
+		GetStreamUri.StreamSetup = soap_new_tt__StreamSetup(soap);
+		GetStreamUri.StreamSetup->Stream = tt__StreamType__RTP_Unicast;
+		GetStreamUri.StreamSetup->Transport = soap_new_tt__Transport(soap);
+		GetStreamUri.StreamSetup->Transport->Protocol = tt__TransportProtocol__TCP;
+		set_credentials(soap);
+		if (proxyMedia.GetStreamUri(&GetStreamUri, GetStreamUriResponse))
+			report_error(soap);
+		check_response(soap);
+
+		if (GetStreamUriResponse.MediaUri)
+			std::cout << GetStreamUriResponse.MediaUri->Uri << std::endl;
+	}
+
+}
+
 void show_info(struct soap *soap)
 {
 	// create the proxies to access the ONVIF service API at HOSTNAME
@@ -400,6 +456,10 @@ int main(int argc, char **argv)
 	{
 		if (strcmp("resolutions", argv[4]) == 0)
 			show_resolutions(soap);
+		else if (strcmp("get_stream_urls", argv[4]) == 0)
+		{
+			get_stream_urls(soap);
+		}
 		else if (strcmp("set_resolution", argv[4]) == 0)
 		{
 			if (argc < 6)
