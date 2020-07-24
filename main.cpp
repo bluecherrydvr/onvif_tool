@@ -423,7 +423,7 @@ void show_info(struct soap *soap)
 void print_usage(const char *argv0)
 {
 	printf("%s address username password action [action parameters]\n"
-	       "actions: info resolutions set_resolution events\n", argv0);
+	       "actions: info resolutions set_resolution get_stream_urls\n", argv0);
 	exit(0);
 }
 
