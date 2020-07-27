@@ -52,7 +52,7 @@ void report_error(struct soap *soap)
 static void set_device_endpoint(DeviceBindingProxy *dev, const char *hostname)
 {
 	static char soap_endpoint[1024];
-	sprintf(soap_endpoint, "%s/onvif/device_service", hostname);
+	sprintf(soap_endpoint, "http://%s/onvif/device_service", hostname);
 
 	dev->soap_endpoint = soap_endpoint;
 }
@@ -114,6 +114,7 @@ void check_response(struct soap *soap)
 
 int skip_unknown(struct soap *soap, const char *tag)
 {
+	//std::cerr << "unknown tag: " << tag << std::endl;
 	return SOAP_OK;
 }
 
@@ -177,6 +178,140 @@ void save_snapshot(int i, const char *endpoint)
 	soap_destroy(soap);
 	soap_end(soap);
 	soap_free(soap);
+}
+
+void events_unsubscribe(struct soap *soap, const char *subscription_endpoint)
+{
+	PullPointSubscriptionBindingProxy proxyEvent(soap);
+
+	_wsnt__Unsubscribe Unsubscribe;
+	_wsnt__UnsubscribeResponse UnsubscribeResponse;
+	proxyEvent.soap_endpoint = subscription_endpoint;
+	set_credentials(soap);
+	if (proxyEvent.Unsubscribe(&Unsubscribe, UnsubscribeResponse))
+		report_error(soap);
+	check_response(soap);
+
+	std::cout << "OK" << std::endl;
+}
+
+void events_subscribe(struct soap *soap)
+{
+	DeviceBindingProxy proxyDevice(soap);
+	PullPointSubscriptionBindingProxy proxyEvent(soap);
+
+	set_device_endpoint(&proxyDevice, g_hostname);
+
+	_tds__GetCapabilities GetCapabilities;
+	_tds__GetCapabilitiesResponse GetCapabilitiesResponse;
+	set_credentials(soap);
+	if (proxyDevice.GetCapabilities(&GetCapabilities, GetCapabilitiesResponse))
+		report_error(soap);
+	check_response(soap);
+	if (!GetCapabilitiesResponse.Capabilities || !GetCapabilitiesResponse.Capabilities->Events)
+	{
+		std::cerr << "Missing device capabilities info" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// set the Event proxy endpoint to XAddr
+	proxyEvent.soap_endpoint = GetCapabilitiesResponse.Capabilities->Events->XAddr.c_str();
+	//std::cout << GetCapabilitiesResponse.Capabilities->Events->XAddr << std::endl;
+	/*
+	_tev__GetEventProperties GetEventProperties;
+	_tev__GetEventPropertiesResponse GetEventPropertiesResponse;
+
+	set_credentials(soap);
+	if (proxyEvent.GetEventProperties(&GetEventProperties, GetEventPropertiesResponse))
+		report_error(soap);
+	check_response(soap);
+
+	//GetEventPropertiesResponse.wstop__TopicSet->soap_put(soap, NULL, NULL);
+	soap_write__tev__GetEventPropertiesResponse(soap, &GetEventPropertiesResponse);
+	std::cout << std::endl;
+	soap_write_wstop__TopicSetType(soap, GetEventPropertiesResponse.wstop__TopicSet);
+	std::cout << std::endl;
+
+	for (unsigned int i = 0; i < GetEventPropertiesResponse.TopicNamespaceLocation.size(); i++)
+	{
+		std::cout << GetEventPropertiesResponse.TopicNamespaceLocation[i] << std::endl;
+	}
+
+	std::cout << std::endl;
+
+	for (unsigned int i = 0; i < GetEventPropertiesResponse.wsnt__TopicExpressionDialect.size(); i++)
+	{
+		std::cout << GetEventPropertiesResponse.wsnt__TopicExpressionDialect[i] << std::endl;
+	}
+
+	std::cout << std::endl;
+
+	for (unsigned int i = 0; i < GetEventPropertiesResponse.MessageContentFilterDialect.size(); i++)
+	{
+		std::cout << GetEventPropertiesResponse.MessageContentFilterDialect[i] << std::endl;
+	}
+
+	std::cout << std::endl;
+
+	for (unsigned int i = 0; i < GetEventPropertiesResponse.ProducerPropertiesFilterDialect.size(); i++)
+	{
+		std::cout << GetEventPropertiesResponse.ProducerPropertiesFilterDialect[i] << std::endl;
+	}
+
+	std::cout << std::endl;
+
+	for (unsigned int i = 0; i < GetEventPropertiesResponse.MessageContentSchemaLocation.size(); i++)
+	{
+		std::cout << GetEventPropertiesResponse.MessageContentSchemaLocation[i] << std::endl;
+	}*/
+
+	//subscribe to events
+	_tev__CreatePullPointSubscription CreatePullPointSubscription;
+	_tev__CreatePullPointSubscriptionResponse CreatePullPointSubscriptionResponse;
+
+	set_credentials(soap);
+	if (proxyEvent.CreatePullPointSubscription(&CreatePullPointSubscription, CreatePullPointSubscriptionResponse))
+		report_error(soap);
+	check_response(soap);
+
+	std::cout << CreatePullPointSubscriptionResponse.SubscriptionReference.Address << std::endl;
+
+	_tev__PullMessages PullMessages;
+	_tev__PullMessagesResponse PullMessagesResponse;
+	do
+	{
+		PullMessages.Timeout = "PT10S";
+		PullMessages.MessageLimit = 10;
+		proxyEvent.soap_endpoint = CreatePullPointSubscriptionResponse.SubscriptionReference.Address;
+		set_credentials(soap);
+		if (proxyEvent.PullMessages(&PullMessages, PullMessagesResponse))
+			report_error(soap);
+		check_response(soap);
+
+		for (unsigned int i = 0; i < PullMessagesResponse.wsnt__NotificationMessage.size(); i++)
+		{
+			soap_dom_element *dom;
+			//std::cout << "message #" << i << std::endl;
+			//soap_write_wsnt__NotificationMessageHolderType(soap, PullMessagesResponse.wsnt__NotificationMessage[i]);
+			//soap_write_wsnt__TopicExpressionType(soap, PullMessagesResponse.wsnt__NotificationMessage[i]->Topic);
+			//std::cout << std::endl;
+
+			dom = &PullMessagesResponse.wsnt__NotificationMessage[i]->Topic->__mixed;
+				std::cout << "ONVIF event topic: " << dom->get_text() << std::endl;
+			//dom = &PullMessagesResponse.wsnt__NotificationMessage[i]->Message.__any;
+			/*if (dom)
+			{
+				std::cout << "dom!" << std::endl;
+				for (xsd__anyAttribute::iterator it = dom->att_begin(); it != dom->att_end(); ++it)
+				  std::cout << "@" << it->tag() << std::endl;
+				// print child element tags
+				for (xsd__anyType::iterator it = dom->elt_begin(); it != dom->elt_end(); ++it)
+				  std::cout << "<" << it->tag() << ">" << std::endl;
+			}*/
+		}
+	}
+	while(/*PullMessagesResponse.wsnt__NotificationMessage.size() > 0*/ 1);
+
 }
 
 void show_resolutions(struct soap *soap)
@@ -308,6 +443,7 @@ void get_stream_urls(struct soap *soap)
 
 	// set the Media proxy endpoint to XAddr
 	proxyMedia.soap_endpoint = GetCapabilitiesResponse.Capabilities->Media->XAddr.c_str();
+	//proxyMedia.soap_endpoint = "http://201.0.143.16:8089/onvif/media_service";
 
 	std::cout << GetCapabilitiesResponse.Capabilities->Media->XAddr << std::endl;
 
@@ -469,8 +605,13 @@ int main(int argc, char **argv)
 			}
 			set_resolution(soap, argv[5]);
 		}
-		else if (strcmp("events", argv[4]) == 0)
+		else if (strcmp("events_subscribe", argv[4]) == 0)
 		{
+			events_subscribe(soap);
+		}
+		else if (strcmp("events_unsubscribe", argv[4]) == 0)
+		{
+			events_unsubscribe(soap, argv[5]);
 		}
 		else
 		{
