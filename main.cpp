@@ -25,6 +25,9 @@
 #include "plugin/wsseapi.h"
 #include "wsdd.nsmap"
 
+#include <regex>
+#include <iostream>
+#include <string>
 
 static char *g_username;
 static char *g_password;
@@ -555,10 +558,40 @@ void show_info(struct soap *soap)
 
 }
 
+void discover(struct soap *soap)
+{
+        struct soap* serv = soap_new1(SOAP_IO_UDP);
+        if (!soap_valid_socket(soap_bind(serv, NULL, 0, 1000)))
+        {
+                soap_print_fault(serv, stderr);
+                exit(1);
+        }
+        int res = soap_wsdd_Probe(serv,
+                                  SOAP_WSDD_ADHOC,
+                                  SOAP_WSDD_TO_TS,
+                                  "soap.udp://239.255.255.250:3702",
+                                  soap_wsa_rand_uuid(serv),
+                                  NULL,
+                                  "tds:Device",
+                                  "onvif://www.onvif.org",
+                                  "http://schemas.xmlsoap.org/ws/2005/04/discovery/rfc3986");
+        if (res != SOAP_OK)
+        {
+                soap_print_fault(serv, stderr);
+                exit(1);
+        }
+	for (int i = 0; i < 3; i++)
+	        soap_wsdd_listen(serv, 1);
+
+        soap_destroy(serv);
+        soap_end(serv);
+        soap_done(serv);
+}
+
 void print_usage(const char *argv0)
 {
 	printf("%s address username password action [action parameters]\n"
-	       "actions: info resolutions set_resolution get_stream_urls\n", argv0);
+	       "actions: info discover resolutions set_resolution get_stream_urls\n", argv0);
 	exit(0);
 }
 
@@ -612,6 +645,10 @@ int main(int argc, char **argv)
 		{
 			events_unsubscribe(soap, argv[5]);
 		}
+		else if (strcmp("discover", argv[4]) == 0)
+		{
+			discover(soap);
+		}
 		else
 		{
 			std::cerr << "Unknown action: " << argv[4] << std::endl;
@@ -649,7 +686,40 @@ soap_wsdd_mode wsdd_event_Probe(struct soap *soap, const char *MessageID, const 
 }
 
 void wsdd_event_ProbeMatches(struct soap *soap, unsigned int InstanceId, const char *SequenceId, unsigned int MessageNumber, const char *MessageID, const char *RelatesTo, struct wsdd__ProbeMatchesType *ProbeMatches)
-{ }
+{
+	for (int i=0; i < ProbeMatches->__sizeProbeMatch; i++)
+	{
+		std::regex ip("\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b");
+		std::regex scope("onvif://www.onvif.org/([\\w/%\\-]+)");
+		std::smatch m1;
+
+		if (ProbeMatches->ProbeMatch[i].XAddrs)
+		{
+			std::string xaddrs(ProbeMatches->ProbeMatch[i].XAddrs);
+			std::regex_search(xaddrs, m1, ip);
+			if (m1.empty())
+				continue;
+			std::cout << m1[0] << std::endl;
+
+			if (ProbeMatches->ProbeMatch[i].Scopes->__item)
+			{
+				std::string scopes(ProbeMatches->ProbeMatch[i].Scopes->__item);
+
+				auto words_begin =
+				std::sregex_iterator(scopes.begin(), scopes.end(), scope);
+				auto words_end = std::sregex_iterator();
+
+				for (std::sregex_iterator i = words_begin; i != words_end; ++i)
+				{
+				        std::smatch match = *i;
+				        std::string match_str = match[1].str();
+				        std::cout << match_str << '\n';
+				}
+			}
+			std::cout << std::endl;
+		}
+	}
+}
 
 soap_wsdd_mode wsdd_event_Resolve(struct soap *soap, const char *MessageID, const char *ReplyTo, const char *EndpointReference, struct wsdd__ResolveMatchType *match)
 {
