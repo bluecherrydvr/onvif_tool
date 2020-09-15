@@ -291,23 +291,22 @@ void events_subscribe(struct soap *soap)
 		for (unsigned int i = 0; i < PullMessagesResponse.wsnt__NotificationMessage.size(); i++)
 		{
 			soap_dom_element *dom;
-			//std::cout << "message #" << i << std::endl;
-			//soap_write_wsnt__NotificationMessageHolderType(soap, PullMessagesResponse.wsnt__NotificationMessage[i]);
-			//soap_write_wsnt__TopicExpressionType(soap, PullMessagesResponse.wsnt__NotificationMessage[i]->Topic);
-			//std::cout << std::endl;
+			int skip = 0;
+
+			dom = &PullMessagesResponse.wsnt__NotificationMessage[i]->Message.__any;
+			if (dom)
+				for (xsd__anyType::iterator it = dom->find("@*:Name"); it != dom->end(); ++it)
+					if (strcmp(it->att_get("*:Name")->get_text(), "IsMotion") == 0 && it->att_get("*:Value")->is_false())
+					{
+						skip = 1;
+						break;
+					}
+
+			if (skip)
+				continue;
 
 			dom = &PullMessagesResponse.wsnt__NotificationMessage[i]->Topic->__mixed;
 				std::cout << "ONVIF event topic: " << dom->get_text() << std::endl;
-			//dom = &PullMessagesResponse.wsnt__NotificationMessage[i]->Message.__any;
-			/*if (dom)
-			{
-				std::cout << "dom!" << std::endl;
-				for (xsd__anyAttribute::iterator it = dom->att_begin(); it != dom->att_end(); ++it)
-				  std::cout << "@" << it->tag() << std::endl;
-				// print child element tags
-				for (xsd__anyType::iterator it = dom->elt_begin(); it != dom->elt_end(); ++it)
-				  std::cout << "<" << it->tag() << ">" << std::endl;
-			}*/
 		}
 	}
 	while(/*PullMessagesResponse.wsnt__NotificationMessage.size() > 0*/ 1);
