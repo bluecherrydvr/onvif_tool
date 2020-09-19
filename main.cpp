@@ -283,7 +283,7 @@ void events_subscribe(struct soap *soap)
 	_tev__PullMessagesResponse PullMessagesResponse;
 	do
 	{
-		PullMessages.Timeout = "PT10S";
+		PullMessages.Timeout = "PT8S";
 		PullMessages.MessageLimit = 10;
 		proxyEvent.soap_endpoint = CreatePullPointSubscriptionResponse.SubscriptionReference.Address;
 		set_credentials(soap);
