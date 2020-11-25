@@ -309,7 +309,7 @@ void events_subscribe(struct soap *soap)
 				continue;
 
 			dom = &PullMessagesResponse.wsnt__NotificationMessage[i]->Topic->__mixed;
-				std::cout << "ONVIF event topic: " << dom->get_text() << std::endl;
+				std::cout << dom->get_text() << std::endl;
 		}
 	}
 	while(/*PullMessagesResponse.wsnt__NotificationMessage.size() > 0*/ 1);
