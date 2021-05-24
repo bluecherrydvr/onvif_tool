@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2020 Bluecherry, LLC
- * Copyrigh (c) 2020 Anton Sviridenko
+ * Copyright (c) 2021 Bluecherry, LLC
+ * Copyrigh (c) 2021 Anton Sviridenko
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
