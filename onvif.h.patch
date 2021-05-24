@@ -1,0 +1,12 @@
+--- onvif_tool/onvif.h	2021-05-24 02:20:14.000000000 +0400
++++ patched/onvif.h	2021-05-24 02:19:40.000000000 +0400
+@@ -123,7 +123,8 @@
+ 
+ // dom.h declares the DOM xsd__anyType object (compiler and link with dom.cpp)
+ #import "dom.h"
+-#import "wsdd10.h"	// wsdd10 = <http://schemas.xmlsoap.org/ws/2005/04/discovery>
++#import "wsdd5.h"
++#import "wsse.h"
+ #import "xop.h"	// xop = <http://www.w3.org/2004/08/xop/include>
+ #import "wsa5.h"	// wsa5 = <http://www.w3.org/2005/08/addressing>
+ 
