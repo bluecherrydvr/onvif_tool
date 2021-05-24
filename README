@@ -1,0 +1,58 @@
+onvif_tool is a program that interacts
+with IP cameras supporting ONVIF.
+It can:
+- discover IP cameras in local network,
+- provide info about camera,
+- get stream URLs,
+- list available resolutions and change resolution,
+- subscribe to ONVIF events
+
+It depends on gSOAP toolkit
+https://www.genivia.com/products.html#gsoap
+and is known to build successfully with version 2.8.106
+
+This project was created using gSOAP ONVIF example as a reference
+https://www.genivia.com/examples/onvif/index.html
+
+Building onvif_tool.
+
+First, make sure you have gSOAP source and tools
+installed. You either need to install gsoap packages from
+your GNU/Linux distribution repository
+(for example Ubuntu or Debian-based)
+
+sudo apt-get install gsoap
+
+or build gSOAP from sources yourself:
+
+1) Download gSOAP sources from
+https://sourceforge.net/projects/gsoap2/files/
+
+2) unzip 
+
+unzip gsoap_2.8.113.zip
+
+3) build gsoap
+
+cd gsoap-2.8/
+./configure --prefix=/home/user/gsoap_prefix
+make
+make install
+
+4) Build onvif_tool
+
+#if you are using custom built gSOAP
+# (as described above) 
+# and not from distro repository
+#please set these variables
+#first
+export PKG_CONFIG_PATH=/home/user/gsoap_prefix/lib/pkgconfig/
+export PATH=/home/user/gsoap_prefix/bin
+
+git clone https://github.com/bluecherrydvr/onvif_tool.git
+cd onvif_tool
+autoreconf -i
+./configure --prefix=/home/user/onvif_tool_prefix
+make
+make install
+
