@@ -4,6 +4,9 @@ AM_INIT_AUTOMAKE([foreign])
 AC_PROG_CC
 AC_PROG_CXX
 
+AC_PATH_PROG([WSDL2H],[wsdl2h])
+AC_PATH_PROG([SOAPCPP2],[soapcpp2])
+
 PKG_CHECK_MODULES([GSOAPSSL], [gsoapssl++], HAVE_GSOAPSSL=yes, AC_MSG_ERROR(["gsoapssl library not found"]))
 PKG_CHECK_VAR([GSOAP_PREFIX], [gsoap], [prefix])
 AS_IF([test "x$GSOAP_PREFIX" = "x"], [

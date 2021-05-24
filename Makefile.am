@@ -44,10 +44,10 @@ http://www.onvif.org/onvif/ver10/network/wsdl/remotediscovery.wsdl \
 http://www.onvif.org/ver10/advancedsecurity/wsdl/advancedsecurity.wsdl
 
 onvif.h: Makefile onvif.h.patch
-	wsdl2h -d -O4 -P   -o $@   $(WSDL_URLS)
+	$(WSDL2H) -d -O4 -P   -o $@   $(WSDL_URLS)
 	patch -p1 < onvif.h.patch
 
 generated_sources: onvif.h
-	soapcpp2 -2 -C -I $(GSOAP_PREFIX)/share/gsoap/import -I $(GSOAP_PREFIX)/share/gsoap -I $(GSOAP_PREFIX)/share/gsoap/custom -j -x onvif.h
-	soapcpp2 -a -x -L -pwsdd -I $(GSOAP_PREFIX)/share/gsoap/import/ $(GSOAP_PREFIX)/share/gsoap/import/wsdd5.h
+	$(SOAPCPP2) -2 -C -I $(GSOAP_PREFIX)/share/gsoap/import -I $(GSOAP_PREFIX)/share/gsoap -I $(GSOAP_PREFIX)/share/gsoap/custom -j -x onvif.h
+	$(SOAPCPP2) -a -x -L -pwsdd -I $(GSOAP_PREFIX)/share/gsoap/import/ $(GSOAP_PREFIX)/share/gsoap/import/wsdd5.h
 
