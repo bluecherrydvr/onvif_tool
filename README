@@ -47,7 +47,7 @@ make install
 #please set these variables
 #first
 export PKG_CONFIG_PATH=/home/user/gsoap_prefix/lib/pkgconfig/
-export PATH=/home/user/gsoap_prefix/bin
+export PATH=/home/user/gsoap_prefix/bin:$PATH
 
 git clone https://github.com/bluecherrydvr/onvif_tool.git
 cd onvif_tool
