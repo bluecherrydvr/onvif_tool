@@ -1,6 +1,5 @@
-onvif_tool is a program that interacts
-with IP cameras supporting ONVIF.
-It can:
+## onvif_tool is a program that interacts with IP cameras supporting ONVIF. 
+### It can:
 - discover IP cameras in local network,
 - provide info about camera,
 - get stream URLs,
@@ -9,50 +8,80 @@ It can:
 
 It depends on gSOAP toolkit
 https://www.genivia.com/products.html#gsoap
-and is known to build successfully with version 2.8.106
+and is known to build successfully with version 2.8.106 & 2.8.123
 
 This project was created using gSOAP ONVIF example as a reference
 https://www.genivia.com/examples/onvif/index.html
 
 Building onvif_tool.
 
-First, make sure you have gSOAP source and tools
-installed. You either need to install gsoap packages from
-your GNU/Linux distribution repository
-(for example Ubuntu or Debian-based)
-
+First, make sure you have gSOAP source and tools installed. You either need to install gsoap packages from your GNU/Linux distribution repository (for example Ubuntu or Debian-based)
+```sh
 sudo apt-get install gsoap
-
+```
 or build gSOAP from sources yourself:
 
-1) Download gSOAP sources from
-https://sourceforge.net/projects/gsoap2/files/
+setting up the pre-requisites for Onvif_tool development.
 
-2) unzip 
+1. Download gSOAP sources from
+wget https://onboardcloud.dl.sourceforge.net/project/gsoap2/gsoap_2.8.123.zip
 
-unzip gsoap_2.8.113.zip
+2. unzip gsoap_2.8.123.zip
 
-3) build gsoap
-
-cd gsoap-2.8/
-./configure --prefix=/home/user/gsoap_prefix
+3. cd gsoap-2.8/
+./configure --prefix=/$HOME/gsoap-2.8/
 make
 make install
 
-4) Build onvif_tool
+4. Configure the PATH for building
 
-#if you are using custom built gSOAP
-# (as described above) 
-# and not from distro repository
-#please set these variables
-#first
-export PKG_CONFIG_PATH=/home/user/gsoap_prefix/lib/pkgconfig/
-export PATH=/home/user/gsoap_prefix/bin:$PATH
+    if you are using custom built gSOAP (as described above) and not from distro repository please set these variables first
+    ```sh
+    export PKG_CONFIG_PATH=/home/user/gsoap_prefix/lib/pkgconfig/
+    export PATH=/home/user/gsoap_prefix/bin:$PATH
+    ```
 
-git clone https://github.com/bluecherrydvr/onvif_tool.git
-cd onvif_tool
-autoreconf -i
-./configure --prefix=/home/user/onvif_tool_prefix
-make
-make install
+5. Install other dependencies
+    ```sh
+    sudo apt install build-essential
+    sudo apt install pkg-config
+    sudo apt install unzip
+    sudo apt-get install flex bison
+    sudo apt install libssl-dev
+    ```
+    
+    optional: Install if other dependencies requires during the installation else skip this step
+    **18.04LTS**
+    ```sh
+    sudo apt-get install libgnutls28-dev
+    sudo apt install libgsoap-dev
+    ```
+    
+    **20.04 LTS**
+    ```sh
+    sudo apt install gawk
+    sudo apt install mono-devel
+    sudo apt install gsoap
+    ```
+
+6. Build onvif_tool 
+    ```sh
+    git clone https://github.com/bluecherrydvr/onvif_tool.git
+    cd onvif_tool
+    autoreconf -i
+    ./configure --prefix=/home/user/onvif_tool_prefix
+    make
+    make install
+    ```
+
+Deprecated steps previously used in custom build of gsoap 2.8.106. 
+Note: skip this step if you already installed 2.8.123v
+1. get sources from https://sourceforge.net/projects/gsoap2/files/
+2. unzip 
+    unzip gsoap_2.8.113.zip
+3. build gsoap
+    cd gsoap-2.8/
+    ./configure --prefix=/home/user/gsoap_prefix
+    make
+    make install
 
